@@ -1,8 +1,13 @@
+import sys
+sys.path.append("/fullgrad-saliency")
+print(sys.path)
+
 from saliency.smoothgrad import SmoothGrad
 from saliency.gradcam import GradCAM
 from saliency.grad import InputGradient
 from saliency.simple_fullgrad import SimpleFullGrad
 from saliency.fullgrad import FullGrad
+from utils import visualize_side_by_side
 import argparse
 import torch
 import torchvision.transforms as transforms
@@ -12,6 +17,10 @@ import pdb
 import time
 import glob
 import copy
+from tqdm import tqdm
+import os
+
+# export PYTHONPATH=$PYTHONPATH:$(pwd)
 
 class Dataset(torch.utils.data.Dataset):
 
@@ -211,26 +220,43 @@ def load_waterbirds_from_cpu(data_path, spurious_class):
 
 
 
-def mnist_iou(explanation_method, dataloader, device):
+def mnist_iou(explanation_method, dataloader, device, save_dir="results", num_samples=5):
     
     count = 0
     ious = []
+    saved_samples = []  # Store a few samples for later saving/visualization
 
-    for idx, batch_x, batch_y in dataloader:
+    for idx, batch_x, batch_y in tqdm(dataloader, desc="Processing batches in dataloader"):
         batch_x, batch_y = batch_x.to(device), batch_y.to(device)
         
         batch_mask = explanation_method.saliency(batch_x, batch_y)
 
         groundtruth = torch.where(torch.sum(batch_x, 1) >=2.99, 1, 0).to(device)
         p = torch.sum(groundtruth, (1,2))
-        
-        for i in range(len(idx)):
+        # print('index:', idx)
+        for i in tqdm(range(len(idx)), desc="Iterating through index at dim 0 of masked_batch to calc IOU"):
             top_p_ind = torch.sort(batch_mask[i].flatten())[0][-p[i]]
             im_mask = torch.where(batch_mask[i] >= top_p_ind, 1.0, 0.0)
             intersection = torch.sum(im_mask*groundtruth[i])
             union = torch.sum(torch.where(im_mask+groundtruth[i] >= 1.0, 1.0, 0.0))
             ious.append((intersection/union)) 
-        
+            # print(f"IOU for index {i}: {(intersection/union)}")
+
+            # Collect a few samples for visualization (only if needed)
+            if len(saved_samples) < num_samples:
+                saved_samples.append((im_mask.cpu(), groundtruth[i].cpu(), idx[i].cpu()))
+    
+    # Process saved samples outside the loop
+    for i, (im_mask, groundtruth, sample_idx) in enumerate(saved_samples):
+        # Save prediction and ground truth
+        torch.save({
+            "prediction": im_mask,
+            "groundtruth": groundtruth,
+            "index": sample_idx
+        }, os.path.join(save_dir, f"sample_{sample_idx}.pt"))
+
+        # Visualize prediction and ground truth side by side
+        visualize_side_by_side(im_mask, groundtruth, save_path=os.path.join(save_dir, f"sample_{sample_idx}.png"))
 
 
 
@@ -294,7 +320,12 @@ def main():
     model = model.to(device)
     model.eval()
 
-    expl_methods = {"SMOOTHGRAD": SmoothGrad, "GRADCAM":GradCAM, "GRAD":InputGradient, "SimpleFullGrad":SimpleFullGrad}
+    expl_methods = {
+                    # "SMOOTHGRAD": SmoothGrad, 
+                    # "GRADCAM":GradCAM, 
+                    "GRAD":InputGradient, 
+                    # "SimpleFullGrad":SimpleFullGrad
+                    }
 
     for method_name in expl_methods:
         print(method_name)

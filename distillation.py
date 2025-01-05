@@ -6,6 +6,7 @@ import argparse
 from PIL import Image
 import glob
 import pdb
+import wandb
 
 class Dataset(torch.utils.data.Dataset):
 
@@ -227,7 +228,7 @@ def get_predictions(model, data, labels, args, from_disk=True):
 
     with torch.no_grad():
         for idx, imgs, _ in data_loader:
-            print(time.ctime())
+            # print(time.ctime())
             preds[idx] = sm(model(imgs.to(args.device))).to("cpu")
     
     return preds
@@ -285,7 +286,7 @@ def update_mask(mask, data_loader, model, mask_opt, simp_weight, args):
 def print_mask_metrics(metrics):
 
     print_metrics = [round(i.item(), 3) for i in metrics]
-    print(time.ctime().split(" ")[3], "loss:", print_metrics[0], \
+    print( "loss:", print_metrics[0], \
             "l1:", print_metrics[1], \
             "t1:", print_metrics[2], \
             "t2:", print_metrics[3], \
@@ -437,6 +438,16 @@ def distill(mask, model, train_loader, test_loader, mask_opt, model_opt, args):
             mask_loss = mask_metrics[0]
             mask_converged = (mask_loss >= 0.995*prev_prev_loss) and (mask_loss <= 1.005*prev_prev_loss)
             
+            wandb.log({
+                "rounding_step": k,
+                "mask_loss": mask_loss,
+                "simplicity_weight": simp_weight[k],
+                "t1_acc": mask_metrics[4],
+                "fs_s_acc": mask_metrics[5],
+                "mask_l0_norm": mask_metrics[6],
+            })
+
+
             prev_prev_loss = prev_loss
             prev_loss = mask_loss
 
@@ -454,6 +465,17 @@ def distill(mask, model, train_loader, test_loader, mask_opt, model_opt, args):
             model_metrics = update_model(mask, train_loader, model, model_opt, args)
             model_loss = model_metrics[0]
             model_converged = (model_loss < 0.025) or ((model_loss >= 0.97*prev_prev_loss) and (model_loss <= 1.005*prev_prev_loss))
+
+            # Log model training metrics
+            wandb.log({
+                "rounding_step": k,
+                "model_loss": model_loss,
+                "t1_norm": model_metrics[1],
+                "t2_norm": model_metrics[2],
+                "t1_accuracy": model_metrics[3],
+                "fs_s_accuracy": model_metrics[4],
+            })
+
 
             prev_prev_loss = prev_loss
             prev_loss = model_loss
@@ -482,6 +504,12 @@ def main():
     args = parser.parse_args()
     args.im_size = 224
     print(args)
+    wandb.init(
+        project="mask_attr",  # Replace with your project name
+        name="diet",
+        entity="visriv",)
+    
+
 
     if args.dataset == "mnist":
         data_dir = "data/hard_mnist/"

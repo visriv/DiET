@@ -1,3 +1,6 @@
+import sys
+sys.path.append("/fullgrad-saliency")
+
 from saliency.smoothgrad import SmoothGrad
 from saliency.gradcam import GradCAM
 from saliency.grad import InputGradient

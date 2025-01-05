@@ -355,7 +355,7 @@ def distill(mask, model, test_loader, mask_opt, args):
 
             mask_metrics = update_mask(mask, test_loader, model, mask_opt, simp_weight[k], args)
             mask_loss = mask_metrics[0]
-            mask_converged = (mask_loss > 0.998*prev_prev_loss) and (mask_loss < 1.002*prev_prev_loss)
+            mask_converged = (mask_loss > 0.97*prev_prev_loss) and (mask_loss < 1.03*prev_prev_loss)
             
             prev_prev_loss = prev_loss
             prev_loss = mask_loss
