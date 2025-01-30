@@ -1,0 +1,64 @@
+# config.yaml
+device: "cuda"  # or "cpu"
+
+
+experiment:
+  train: True
+  validate: True
+  analysis: False
+  run_id: 1
+  project: diet
+  # plot_file_name: 2d_plot
+  # freq_plot_file_name: freq_spectrum_plot
+  # plot_video: True
+  # stability_file_name: temporal_stability
+  # spectral_analysis: spec_analysis
+  # save_plot_video_path: pred_video
+  # eval_node: eval_node
+  start_from_checkpoint: False
+  checkpoint_path: '' #'runs/kol/23/model_checkpoint_30.pth'  
+  # checkpoint_path: 'runs/kol/21/model_checkpoint_15.pth'  
+  # checkpoint_path: 'runs/kol/3/model_checkpoint_88.pth'  
+  save_ckpt_every_n_epochs: 5
+  val_every_n_epochs: 5
+
+training:
+  optim:
+    shuffle: true
+    learning_rate: 1.0e-3
+    # method: "adamw"
+    # wd: 1.0e-5
+    # betas: [0.9, 0.999]
+    # gradient_clip_val: 1.0
+    # max_epochs: 100
+    # loss_type: "l2"
+    # # scheduler
+    # warmup_percentage: 0.1
+    # lr_scheduler_mode: "cosine"
+    # min_lr_ratio: 1.0e-3
+    # warmup_min_lr_ratio: 0.1
+
+    epochs: 50
+  batch_size: 256
+
+
+
+data:
+  dir: "data/hard_mnist/"
+  mode: "Training"
+  # total_seq_len: 10
+  # rollout_total_seq_len: 600
+  # val_downsample_k: 2  # val_downsample_k * rollout_total_seq_len <= total_len * val_ratio
+  # train_ratio: 0.8
+  # val_ratio: 0.15
+  # crop: 0
+
+
+model:
+  num_classes: 10
+
+validation:
+  n_val_samples: 1
+
+dataloader:
+  num_workers: 2

@@ -1,0 +1,59 @@
+# config.yaml
+device: "cuda"  # or "cpu"
+
+
+experiment:
+  train: True
+  validate: True
+  analysis: False
+  run_id: 1
+  project: diet_distill
+  load_mask: false
+
+  # freq_plot_file_name: freq_spectrum_plot
+  # plot_video: True
+  # stability_file_name: temporal_stability
+  # spectral_analysis: spec_analysis
+  # save_plot_video_path: pred_video
+  # eval_node: eval_node
+  start_from_checkpoint: False
+  checkpoint_path: '' #'runs/kol/23/model_checkpoint_30.pth'  
+  # output_dir: ""  # Specify required output directory
+  # model_path: "trained_models/aligned_celeba_rn34.pth"
+  # mask_path: "trained_masks/mask_5.pt"
+  save_ckpt_every_n_epochs: 5
+  val_every_n_epochs: 5
+
+training:
+  optim:
+    shuffle: true
+    learning_rate: 
+      mask: 300.0  # Mask learning rate
+      model: 0.0001  # Model learning rate
+    epochs: 50
+  upsample_factor: 8
+  rounding_steps: 5
+  batch_size: 256
+
+
+
+data:
+  dir: "data/hard_mnist/"
+  mode: "Training"
+  size: 224
+  # rollout_total_seq_len: 600
+  # val_downsample_k: 2  # val_downsample_k * rollout_total_seq_len <= total_len * val_ratio
+  # train_ratio: 0.8
+  # val_ratio: 0.15
+  # crop: 0
+
+
+model:
+  noise_class: "NORMAL"
+
+
+validation:
+  n_val_samples: 1
+
+dataloader:
+  num_workers: 2

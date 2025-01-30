@@ -3,7 +3,7 @@ import time
 import glob
 import torchvision.transforms as transforms
 from PIL import Image
-
+from .data_class import *
 
 def load_xray_from_cpu(data_path, args):
     """
@@ -179,6 +179,52 @@ def load_mnist_from_disk(data_path):
 
     return train_imgs, train_labels, test_imgs, test_labels
 
+def load_mnist_from_cpu(data_path, args):
+    """
+    Creates training and testing splits for "Hard" MNIST
+    
+    Inputs: Path to MNIST dataset
+    Returns: Dataloaders for training and testing data
+    """
+    print("loading mnist...", flush=True)
+
+    train_imgs = []
+    train_labels = []
+
+    test_imgs = []
+    test_labels = []
+
+    train_files = glob.glob(data_path + "training/*/*")
+    test_files = glob.glob(data_path + "testing/*/*")
+
+    target_resolution = (224, 224)
+    transform = transforms.Compose([
+            transforms.Resize(target_resolution),
+            transforms.ToTensor(),
+        ])
+
+    for f in train_files:
+        if f[-3:] != "png":
+            continue
+        
+        img = transform(Image.open(f).convert('RGB'))
+        train_imgs.append(img)
+        train_labels.append(int(f.split("/")[-2]))
+
+    for f in test_files:
+        if f[-3:] != "png":
+            continue
+        
+        img = transform(Image.open(f).convert('RGB'))
+        test_imgs.append(img)
+        test_labels.append(int(f.split("/")[-2]))
+
+    print("train samples:", len(train_labels), "test samples:", len(test_labels))
+    train_loader = torch.utils.data.DataLoader(Dataset(train_imgs, train_labels), batch_size=args.training.batch_size, shuffle=args.training.optim.shuffle)
+    test_loader = torch.utils.data.DataLoader(Dataset(test_imgs, test_labels), batch_size=args.training.batch_size, shuffle=False)
+
+    print("finished loading mnist!", flush=True)
+    return train_loader, test_loader
 
 
 

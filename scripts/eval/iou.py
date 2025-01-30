@@ -1,5 +1,5 @@
 import sys
-sys.path.append("/fullgrad-saliency")
+sys.path.append("/home/DiET/fullgrad-saliency")
 print(sys.path)
 
 from saliency.smoothgrad import SmoothGrad
@@ -19,6 +19,9 @@ import glob
 import copy
 from tqdm import tqdm
 import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 
 # export PYTHONPATH=$PYTHONPATH:$(pwd)
 

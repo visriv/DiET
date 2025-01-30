@@ -8,8 +8,13 @@ import glob
 import pdb
 import wandb
 
+import os
+os.environ['PYTHONPATH'] = '/home/DiET'
+from src.dataset.data_class import *
+from src.dataset.dataloaders import *
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
-
+ 
 def get_predictions(model, data, labels, args, from_disk=True):
     """
     Returns the input model's predictions on the full dataset
@@ -208,7 +213,15 @@ def evaluate_model(model, mask, train_loader, test_loader, args):
     t2_acc = round(t2_acc/t_count, 3)
     mask_l0_norm = round(mask_l0_norm/s_count, 3)
 
-    print("EVAL:", time.ctime().split(" ")[3], "t1_acc:", t1_acc, "fss_acc:", fs_s_acc, "t2_acc:", t2_acc, "fst_acc:", fs_t_acc, "mask l0:", mask_l0_norm)
+    print("EVAL:", "t1_acc:", t1_acc, "fss_acc:", fs_s_acc, "t2_acc:", t2_acc, "fst_acc:", fs_t_acc, "mask l0:", mask_l0_norm)
+    wandb.log({
+                "t1_acc": t1_acc,
+                "fss_acc": fs_s_acc,
+                "t2_acc": t2_acc,
+                "fst_acc": fs_t_acc,
+                "mask_l0_norm": mask_l0_norm,
+            })
+    
     return
 
 
@@ -284,21 +297,12 @@ def distill(mask, model, train_loader, test_loader, mask_opt, model_opt, args):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-lr", default=300, type=float, help="mask learning rate")
-    parser.add_argument("-mlr", default=0.0001, type=float, help="model learning rate")
-    parser.add_argument("-bs", default=128, type=int, help="batch size")
-    parser.add_argument("-ups", default=8, type=int, help="upsample factor")
-    parser.add_argument("-r", default=5, type=int, help="number of rounding steps")
-    parser.add_argument("-out", required=True, type=str, help="output directory")
-    parser.add_argument("--model_path", default='trained_models/aligned_celeba_rn34.pth', type=str, help="model path")
-    parser.add_argument("-dataset", default="celeba", type=str, help="learning rate")
-    parser.add_argument("-noise_class", default="NORMAL", type=str, help="learning rate")
-    parser.add_argument("--device", type=str, default="cuda:0")
+    from omegaconf import OmegaConf
 
-    args = parser.parse_args()
-    args.im_size = 224
-    print(args)
+    # Load the YAML configuration
+    config = OmegaConf.load("configs/diet/simple.yaml")
+
+
     wandb.init(
         project="mask_attr",  # Replace with your project name
         name="diet",
@@ -341,8 +345,10 @@ def main():
     
     print("loaded data")
 
-
-    mask = torch.ones((len(train_preds), 1, args.im_size//args.ups, args.im_size//args.ups))
+    if (args.load_mask):
+        mask = torch.load(args.mask_path)
+    else:
+        mask = torch.ones((len(train_preds), 1, args.im_size//args.ups, args.im_size//args.ups))
     mask = mask.requires_grad_(True)
     mask_opt = torch.optim.SGD([mask], lr=args.lr)
     mask_opt.zero_grad()
